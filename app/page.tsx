@@ -1,101 +1,214 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from "@/components/ui/navigation-menu"
+import { Loader2, Zap, Image as ImageIcon, Sparkles } from "lucide-react"
+import { ModeToggle } from "@/components/theme-toggle"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Github } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast"
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [prompt, setPrompt] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [showSkeleton, setShowSkeleton] = useState(false)
+  const { toast } = useToast()
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    if (loading) {
+      setShowSkeleton(true)
+    } else {
+      timer = setTimeout(() => {
+        setShowSkeleton(false)
+      }, 300)
+    }
+    return () => clearTimeout(timer)
+  }, [loading])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setImageUrl('')
+    setLoading(true) 
+    const startTime = Date.now(); // Start time
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate image')
+      }
+
+      const data = await response.json()
+      setImageUrl(data.imageUrl)
+      setLoading(false)
+      const endTime = Date.now(); // End time
+      const timeTaken = (endTime - startTime) / 1000; // Calculate time taken in seconds
+      toast({
+        description: ` 🚀 VasarAI has generated an image for you in ${timeTaken.toFixed(2)} seconds.`,
+      })
+    } catch (err) {
+      setError('An error occurred while generating the image.')
+      console.error(err)
+      setLoading(false) 
+    } finally {
+      // any final calls
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-custom">
+      <header className="container mx-auto p-4">
+        <div className="flex justify-between items-center gap-y-2">
+          <NavigationMenu>
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuLink className="text-2xl font-bold text-gradient-custom" href="/">
+                  VasarAI
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+          <div className="flex items-center gap-x-4">
+            <a href='https://github.com/akshaynstack' target='_blank' rel='noopener noreferrer'><Github /></a>
+            <ModeToggle />
+          </div>
         </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-16">
+        <section className="text-center mb-16">
+          <h1 className="text-5xl font-extrabold mb-4 text-gradient-custom">Transform Your Ideas into Images</h1>
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Harness the power of AI to create stunning visuals from simple text descriptions. Unleash your creativity with VasarAI.
+          </p>
+        </section>
+
+        <section className="mb-16">
+          <h2 className="text-3xl font-bold text-center mb-8 text-gradient-custom">Try It Now</h2>
+          <div className="flex flex-col md:flex-col gap-8 items-center">
+            <Card className="w-full md:w-2/3 bg-card/50 backdrop-blur-sm border-primary/10">
+              <CardHeader>
+                <CardTitle>Image Generator</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="prompt">Enter your prompt</Label>
+                    <Input
+                      id="prompt"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      placeholder="A serene landscape with mountains..."
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90">
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        'Generate Image'
+                      )}
+                  </Button>
+
+                </form>
+
+                {error && <p className="text-red-500 mt-4">{error}</p>}
+
+                <div className="mt-6 h-96 relative">
+                  {showSkeleton && (
+                    <Skeleton className="w-full h-full rounded-lg absolute top-0 left-0" />
+                  )}
+                  {imageUrl && (
+                    <img 
+                      src={imageUrl} 
+                      alt="Generated image" 
+                      className={`w-full h-full object-contain rounded-lg shadow-lg absolute top-0 left-0 transition-opacity duration-300 ${showSkeleton ? 'opacity-0' : 'opacity-100'}`}
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            <div className="w-full md:w-2/3 space-y-4">
+              <h3 className="text-2xl font-semibold text-gradient-custom">How It Works</h3>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Enter a descriptive prompt in the text box</li>
+                <li>Click the "Generate Image" button</li>
+                <li>Wait a few seconds for the AI to create your image</li>
+                <li>View and download your generated masterpiece</li>
+              </ol>
+              <p className="text-muted-foreground">
+                Our advanced AI model will interpret your prompt and generate a unique image based on your description. The more detailed your prompt, the better the results!
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-16">
+          <h2 className="text-3xl font-bold text-center mb-8 text-gradient-custom">Features</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="bg-card/50 backdrop-blur-sm border-primary/10 hover:border-primary/30 transition-all duration-300 hover-gradient group">
+              <CardHeader>
+                <Zap className="h-8 w-8 mb-2 text-yellow-500 group-hover:text-black transition-colors dark:group-hover:text-white" />
+                <CardTitle className="group-hover:text-black dark:group-hover:text-white transition-colors">Lightning Fast</CardTitle>
+              </CardHeader>
+              <CardContent className="group-hover:text-black dark:group-hover:text-white transition-colors">
+                Generate high-quality images in seconds, not minutes. Experience the power of real-time AI image generation.
+              </CardContent>
+            </Card>
+            <Card className="bg-card/50 backdrop-blur-sm border-primary/10 hover:border-primary/30 transition-all duration-300 hover-gradient group">
+              <CardHeader>
+                <ImageIcon className="h-8 w-8 mb-2 text-blue-500 group-hover:text-black transition-colors dark:group-hover:text-white" />
+                <CardTitle className="group-hover:text-black transition-colors dark:group-hover:text-white">High Resolution</CardTitle>
+              </CardHeader>
+              <CardContent className="group-hover:text-black dark:group-hover:text-white transition-colors">
+                Create images up to 3840x2160 resolution for any use case. Perfect for professional projects and personal creations alike.
+              </CardContent>
+            </Card>
+            <Card className="bg-card/50 backdrop-blur-sm border-primary/10 hover:border-primary/30 transition-all duration-300 hover-gradient group">
+              <CardHeader>
+                <Sparkles className="h-8 w-8 mb-2 text-purple-500 group-hover:text-black transition-colors dark:group-hover:text-white" />
+                <CardTitle className="group-hover:text-black dark:group-hover:text-white transition-colors">AI-Powered</CardTitle>
+              </CardHeader>
+              <CardContent className="group-hover:text-black dark:group-hover:text-white transition-colors">
+                Leverage cutting-edge AI models for unparalleled creativity. Let our advanced algorithms bring your imagination to life.
+              </CardContent>
+            </Card>
+          </div>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      <footer className="mt-16 py-8">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+          <p className="text-muted-foreground text-sm">&copy; 2024 VasarAI. All rights reserved.</p>
+          <nav className="flex gap-4 mt-4 md:mt-0">
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Terms</a>
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Privacy</a>
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Contact</a>
+          </nav>
+        </div>
       </footer>
     </div>
-  );
+  )
 }
