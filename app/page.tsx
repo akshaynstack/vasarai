@@ -5,17 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-} from "@/components/ui/navigation-menu"
 import { Loader2, Zap, Image as ImageIcon, Sparkles } from "lucide-react"
-import { ModeToggle } from "@/components/theme-toggle"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Github } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
+import Header from '@/components/Header'
 
 export default function Home() {
   const [prompt, setPrompt] = useState('')
@@ -24,6 +17,46 @@ export default function Home() {
   const [error, setError] = useState('')
   const [showSkeleton, setShowSkeleton] = useState(false)
   const { toast } = useToast()
+  const nsfwWords = [
+    'acrotomophile',
+    'anal',
+    'arsehole',
+    'asshole',
+    'barely',
+    'bastard',
+    'bdsm',
+    'bitch',
+    'blowjob',
+    'bollocks',
+    'boob',
+    'butt',
+    'camel',
+    'clit',
+    'cock',
+    'cunt',
+    'damn',
+    'dick',
+    'fuck',
+    'gangbang',
+    'genitals',
+    'jerk',
+    'masturbate',
+    'nigg',
+    'orgasm',
+    'penis',
+    'porn',
+    'pussy',
+    'rape',
+    'shit',
+    'slut',
+    'tits',
+    'whore',
+    'xxx',
+    'porn',
+    'sex',
+    'nudity',
+    'violence'
+];
 
   useEffect(() => {
     let timer: NodeJS.Timeout
@@ -37,10 +70,21 @@ export default function Home() {
     return () => clearTimeout(timer)
   }, [loading])
 
+  const containsNSFW = (text: string) => {
+    const lowerCaseText = text.toLowerCase()
+    return nsfwWords.some(word => lowerCaseText.includes(word))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setImageUrl('')
+
+    if (containsNSFW(prompt)) {
+      setError('Your prompt contains inappropriate or NSFW words. Please modify it and try again.')
+      return
+    }
+
     setLoading(true) 
     const startTime = Date.now(); // Start time
 
@@ -58,6 +102,7 @@ export default function Home() {
       }
 
       const data = await response.json()
+      // We only store the data URL here, not the actual image
       setImageUrl(data.imageUrl)
       setLoading(false)
       const endTime = Date.now(); // End time
@@ -74,26 +119,41 @@ export default function Home() {
     }
   }
 
+  // This useEffect will run on the client-side only
+  useEffect(() => {
+    if (imageUrl) {
+      try {
+        // Ensure the imageUrl is a valid base64 string with a correct prefix
+        const base64Data = imageUrl.split(',')[1];
+  
+        if (base64Data) {
+          // Convert base64 to a binary string
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          
+          // Convert binary string to Uint8Array
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/png' });
+          const imgUrl = URL.createObjectURL(blob);
+  
+          // Update imageUrl state
+          setImageUrl(imgUrl);
+        } else {
+          console.error("Invalid base64 data.");
+        }
+      } catch (err) {
+        console.error("Error while processing image URL:", err);
+      }
+    }
+  }, [imageUrl]);
+
   return (
     <div className="min-h-screen bg-gradient-custom">
-      <header className="container mx-auto p-4">
-        <div className="flex justify-between items-center gap-y-2">
-          <NavigationMenu>
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuLink className="text-2xl font-bold text-gradient-custom" href="/">
-                  VasarAI
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
-          <div className="flex items-center gap-x-4">
-            <a href='https://github.com/akshaynstack' target='_blank' rel='noopener noreferrer'><Github /></a>
-            <ModeToggle />
-          </div>
-        </div>
-      </header>
-
+      <Header />
       <main className="container mx-auto px-4 py-16">
         <section className="text-center mb-16">
           <h1 className="text-5xl font-extrabold mb-4 text-gradient-custom">Transform Your Ideas into Images</h1>
@@ -171,7 +231,7 @@ export default function Home() {
             <Card className="bg-card/50 backdrop-blur-sm border-primary/10 hover:border-primary/30 transition-all duration-300 hover-gradient group">
               <CardHeader>
                 <Zap className="h-8 w-8 mb-2 text-yellow-500 group-hover:text-black transition-colors dark:group-hover:text-white" />
-                <CardTitle className="group-hover:text-black dark:group-hover:text-white transition-colors">Lightning Fast</CardTitle>
+                <CardTitle className="group-hover:text-black transition-colors dark:group-hover:text-white">Lightning Fast</CardTitle>
               </CardHeader>
               <CardContent className="group-hover:text-black dark:group-hover:text-white transition-colors">
                 Generate high-quality images in seconds, not minutes. Experience the power of real-time AI image generation.
